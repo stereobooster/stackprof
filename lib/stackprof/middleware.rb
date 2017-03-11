@@ -22,9 +22,11 @@ module StackProf
     ensure
       if enabled
         StackProf.stop
-        if @num_reqs && (@num_reqs-=1) == 0
+        if env["SCRIPT_NAME"]!= "/assets" && @num_reqs && (@num_reqs-=1) == 0
           @num_reqs = @options[:save_every]
-          Middleware.save
+          path = env["REQUEST_PATH"].gsub('/','-').gsub('.','-')
+          path = path.slice(-30, 30) if path.length > 30
+          Middleware.save(path)
         end
       end
     end
@@ -43,7 +45,7 @@ module StackProf
       def save(filename = nil)
         if results = StackProf.results
           FileUtils.mkdir_p(Middleware.path)
-          filename ||= "stackprof-#{results[:mode]}-#{Process.pid}-#{Time.now.to_i}.dump"
+          filename = "stackprof-#{results[:mode]}-#{filename}-#{Process.pid}-#{Time.now.to_i}.dump"
           File.open(File.join(Middleware.path, filename), 'wb') do |f|
             f.write Marshal.dump(results)
           end
